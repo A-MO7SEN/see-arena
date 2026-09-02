@@ -16,6 +16,8 @@
   canvas{display:block}
   #stage canvas{touch-action:none}
   button,select,input{touch-action:manipulation;font-family:inherit}
+  #css3d{position:fixed;inset:0;z-index:2;pointer-events:none;overflow:hidden;display:none}
+  #css3dcam{width:100%;height:100%;transform-style:preserve-3d}
   #vidwrap{position:fixed;inset:0;z-index:3;background:#000;display:none;align-items:center;justify-content:center}
   #vidwrap.show{display:flex}
   #vidwrap video,#vidwrap canvas{max-width:100vw;max-height:100vh;width:100%;height:100%;object-fit:contain}
@@ -195,6 +197,7 @@
 </head>
 <body>
 <div id="stage"></div>
+<div id="css3d"><div id="css3dcam"></div></div>
 <div id="vidwrap">
   <video id="matchvid" playsinline muted preload="auto"></video>
   <canvas id="vidSample" width="1024" height="576"></canvas>
@@ -293,7 +296,7 @@ if(typeof THREE==='undefined'){
    it plays on the arena jumbotron and in the VIDEO view, time-synced.
    ================================================================ */
 let MATCH_META={set:'SET 2', score:'4 – 3'};
-const VIDEO_URL='https://www.youtube.com/watch?v=ve9w0ZEMIYE';   // full padel match (creator channel, embeddable)
+const VIDEO_URL='https://www.youtube.com/watch?v=Qg4o87Yvw8M';
 // ↑ Replace with your PADEL IN video link when you have it. YouTube links play in the
 //   VIDEO overlay; a direct .mp4/.webm URL also plays ON the 3D jumbotron, timeline-synced.
 const HEATMAP = {
@@ -986,7 +989,7 @@ function stampLive(t0,t1){
   for(let t=t0;t<t1;t+=.15){
     rigs.forEach((r,i)=>{
       const p=samplePos(tracks[i],t);
-      stamp(liveAccums[i], p.x, p.z, .8, .055);
+      stamp(liveAccums[i], p.x, p.z, 1.1, .04);
     });
   }
 }
@@ -1041,7 +1044,7 @@ function setCam(name, spd){
 }
 let autoCam=false;
 document.querySelectorAll('.cams button').forEach(b=>b.onclick=()=>{
-  if(b.dataset.cam==='video'){ setVideoView(!vidView); return; }
+  if(b.dataset.cam==='video'){ setScreenOn(!screenOn); return; }
   if(varS) exitVar();
   if(b.dataset.cam==='auto'){
     autoCam=true; camAnim=null;
@@ -1087,7 +1090,7 @@ const playBtn=document.getElementById('play'), seek=document.getElementById('see
 playBtn.onclick=()=>{playing=!playing; playBtn.innerHTML=playing?'&#10074;&#10074;':'&#9654;';};
 seek.addEventListener('input',()=>{
   if(varS) exitVar();
-  if(hlMode){ hlMode=false; hlBtn.classList.remove('on'); }
+  if(hlMode) exitHL();
   simT=seek.value/1000*RALLY_LEN;
   if(heatMode===2){ resetLive(); catchUpLive(simT); colorizeLive(); }
 });
@@ -1179,9 +1182,12 @@ feedCam.lookAt(0, 1.0, 1.5);
 jumboMat.map=feedRT.texture; jumboMat.needsUpdate=true;
 let feedFrame=0;
 function renderFeed(){
-  if(vidReady || vidView) return;                 // real video owns the screen / overlay open
+  if(vidReady || !screenOn) return;               // real video owns the screen / screen hidden
   feedFrame++;
   if(feedFrame % (MOBILE?3:2)) return;            // half/third rate is plenty for a stadium screen
+  feedCam.copy(camera);                           // mirror the proven main view
+  feedCam.aspect=16/9;
+  feedCam.updateProjectionMatrix();
   jumbo.visible=false;
   const shaftVis=shafts.map(s=>s.visible);
   shafts.forEach(s=>s.visible=false);             // additive cones smear the feed — hide during pass
@@ -1385,7 +1391,7 @@ function applyMatch(m){
   simT=0; prevSim=0; seek.value=0; sbLast=-1;
   resetLive(); if(heatMode===2) colorizeLive();
   occ=null; if(zonesOn) updateZones();
-  hlMode=false; if(hlBtn) hlBtn.classList.remove('on');
+  if(hlMode) exitHL();
   toast('Match loaded — '+PLAYERS.map(p=>p.tag).join(', ')+' · '+RALLY_LEN+'s');
 }
 const dataFile=document.getElementById('dataFile');
@@ -1434,7 +1440,7 @@ addEventListener('drop',e=>{
 /* ---------- match video (jumbotron + show/hide overlay) ---------- */
 const vid=document.getElementById('matchvid');
 const vidwrap=document.getElementById('vidwrap');
-let vidReady=false, vidView=false, ytSrc=null;
+let vidReady=false, screenOn=true, ytSrc=null;
 function parseYouTube(url){
   const pl=url.match(/[?&]list=([\w-]+)/);
   const v=url.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([\w-]{6,})/);
@@ -1461,33 +1467,9 @@ function loadVideo(src){
   };
   vid.onerror=()=>toast('Could not load that video', true);
 }
-function setVideoView(v){
-  vidView=v;
-  vidwrap.classList.toggle('show', v);
-  if(v && ytSrc && !vidReady){
-    vidwrap.classList.add('yt');
-    let fr=document.getElementById('ytframe');
-    if(!fr){
-      fr=document.createElement('iframe');
-      fr.id='ytframe';
-      fr.allow='autoplay; encrypted-media; picture-in-picture';
-      fr.allowFullscreen=true;
-      fr.referrerPolicy='strict-origin-when-cross-origin';
-      vidwrap.appendChild(fr);
-    }
-    if(!fr.src) fr.src=ytSrc;
-    const op=document.getElementById('ytOpen');
-    if(op) op.style.display='block';
-  }
-  if(!v){
-    const fr=document.getElementById('ytframe');
-    if(fr) fr.src='';                      // stop playback when hidden
-    const op=document.getElementById('ytOpen');
-    if(op) op.style.display='none';
-  }else if(!ytSrc && !vidReady){
-    const sc=document.getElementById('vidSample');
-    sc.getContext('2d').drawImage(jumboPh,0,0);
-  }
+function setScreenOn(v){
+  screenOn=v;
+  jumbo.visible=v;
   document.getElementById('vidBtn').classList.toggle('on', v);
 }
 function syncVideo(){
@@ -1500,6 +1482,58 @@ function syncVideo(){
   if(Math.abs(vid.currentTime-vt)>.35) vid.currentTime=vt;
 }
 if(VIDEO_URL) loadVideo(VIDEO_URL);
+setScreenOn(true);
+
+/* ---------- YouTube ON the jumbotron (CSS3D-projected iframe) ---------- */
+const css3d=document.getElementById('css3d');
+const cssCamEl=document.getElementById('css3dcam');
+let cssScrEl=null, cssObj=null;
+const CSS_W=1200, CSS_H=675, SCREEN_W=12;
+function ensureCssScreen(){
+  if(cssScrEl) return;
+  cssScrEl=document.createElement('div');
+  cssScrEl.style.cssText='position:absolute;left:0;top:0;width:'+CSS_W+'px;height:'+CSS_H+'px;background:#000;pointer-events:none';
+  const fr=document.createElement('iframe');
+  fr.style.cssText='width:100%;height:100%;border:0;pointer-events:none';
+  fr.allow='autoplay; encrypted-media';
+  fr.referrerPolicy='strict-origin-when-cross-origin';
+  fr.src=ytSrc;
+  cssScrEl.appendChild(fr);
+  cssCamEl.appendChild(cssScrEl);
+  cssObj=new THREE.Object3D();
+  cssObj.position.set(0, 7.4, L/2+6.49);
+  cssObj.rotation.y=Math.PI;
+  cssObj.scale.setScalar(SCREEN_W/CSS_W);
+  scene.add(cssObj);
+}
+const _cssM=new THREE.Matrix4();
+function _eps(v){ return Math.abs(v)<1e-8? 0 : v; }
+function camCSS(m){ const e=m.elements;
+  return 'matrix3d('+_eps(e[0])+','+_eps(-e[1])+','+_eps(e[2])+','+_eps(e[3])+','
+    +_eps(e[4])+','+_eps(-e[5])+','+_eps(e[6])+','+_eps(e[7])+','
+    +_eps(e[8])+','+_eps(-e[9])+','+_eps(e[10])+','+_eps(e[11])+','
+    +_eps(e[12])+','+_eps(-e[13])+','+_eps(e[14])+','+_eps(e[15])+')';
+}
+function objCSS(m){ const e=m.elements;
+  return 'translate(-50%,-50%)matrix3d('+_eps(e[0])+','+_eps(e[1])+','+_eps(e[2])+','+_eps(e[3])+','
+    +_eps(-e[4])+','+_eps(-e[5])+','+_eps(-e[6])+','+_eps(-e[7])+','
+    +_eps(e[8])+','+_eps(e[9])+','+_eps(e[10])+','+_eps(e[11])+','
+    +_eps(e[12])+','+_eps(e[13])+','+_eps(e[14])+','+_eps(e[15])+')';
+}
+function updateCssScreen(){
+  const show = screenOn && !!ytSrc && !vidReady && phi>=0.55 && camera.position.z < (L/2+6.3);
+  css3d.style.display = show? 'block':'none';
+  if(!show) return;
+  ensureCssScreen();
+  const fovPx = camera.projectionMatrix.elements[5]*innerHeight/2;
+  css3d.style.perspective = fovPx+'px';
+  camera.updateMatrixWorld();
+  _cssM.copy(camera.matrixWorld).invert();
+  cssCamEl.style.transform = 'translateZ('+fovPx+'px)'+camCSS(_cssM)
+    +'translate('+(innerWidth/2)+'px,'+(innerHeight/2)+'px)';
+  cssObj.updateMatrixWorld();
+  cssScrEl.style.transform = objCSS(cssObj.matrixWorld);
+}
 
 /* ---------- zone occupancy ---------- */
 const ZONE_BANDS=[[0,3.5,'NET'],[3.5,6.95,'MID'],[6.95,10,'BACK']];
@@ -1572,21 +1606,35 @@ bindTgl('tglZones',v=>{
 });
 
 /* ---------- highlights mode ---------- */
-let hlMode=false, hlIdx=0, hlList=[];
+let hlMode=false, hlIdx=0, hlList=[], hlSave=null;
 const hlBtn=document.getElementById('tglHL');
 function hlJump(){
   const w=hlList[hlIdx];
   simT=Math.max(0, w.t-1.0); prevSim=simT;
   playing=true; playBtn.innerHTML='&#10074;&#10074;';
 }
+function exitHL(){
+  if(!hlMode) return;
+  hlMode=false; hlBtn.classList.remove('on');
+  if(hlSave){
+    autoCam=hlSave.auto;
+    document.querySelectorAll('.cams button[data-cam]:not([data-cam=video])')
+      .forEach(x=>x.classList.toggle('on', x.dataset.cam===hlSave.btn));
+    if(!hlSave.auto) animCam({t:hlSave.cam.t, p:hlSave.cam.p, r:hlSave.cam.r}, 1.6);
+    hlSave=null;
+  }
+}
 hlBtn.onclick=()=>{
-  if(hlMode){ hlMode=false; hlBtn.classList.remove('on'); return; }
+  if(hlMode){ exitHL(); return; }
   hlList=shots.filter((s,i)=>shotMeta[i].winner);
   if(!hlList.length){ toast('No winner shots in this match data', true); return; }
+  const cur=document.querySelector('.cams button.on:not([data-cam=video])');
+  hlSave={auto:autoCam, btn:cur?cur.dataset.cam:'broadcast', cam:{t:theta, p:phi, r:radius}};
   hlMode=true; hlIdx=0; hlBtn.classList.add('on');
   if(varS) exitVar();
   autoCam=true;
-  document.querySelectorAll('.cams button').forEach(x=>x.classList.toggle('on', x.id==='autoBtn'));
+  document.querySelectorAll('.cams button[data-cam]:not([data-cam=video])')
+    .forEach(x=>x.classList.toggle('on', x.id==='autoBtn'));
   hlJump();
   toast('Highlights — '+hlList.length+' winners, AUTO camera');
 };
@@ -1766,8 +1814,9 @@ function tick(now){
   }
   syncVideo();
   applyCam();
+  updateCssScreen();
   if(radarOn) drawRadar();
-  if(!vidView) renderFrame();
+  renderFrame();
 }
 drawScoreboard(0); applyCam(); syncHeatVis(); requestAnimationFrame(tick);
 </script>
