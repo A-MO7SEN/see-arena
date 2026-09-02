@@ -171,27 +171,51 @@
   .tgl.on{color:#fff;background:rgba(63,143,221,.85);border-color:transparent}
 
   @media (max-width:700px), (pointer:coarse) and (max-height:520px){
-    #topbar{padding:10px 10px}
-    .badge{padding:6px 10px}
-    .badge h1{font-size:14px}
-    .badge p{font-size:8.5px}
-    .cams button{padding:9px 9px;font-size:12px}
-    .varbtn{padding:0 11px;font-size:13px}
-    #radar{right:10px;bottom:calc(186px + env(safe-area-inset-bottom))}
-    #scorebug{top:52px}
-    #scorebug .seg{padding:5px 8px;font-size:12px}
-    #scorebug .sc{font-size:14px;padding:5px 10px}
-    #varhud{top:100px}
+    /* --- top bar: wrap, compact --- */
+    #topbar{padding:8px 8px 0;flex-wrap:wrap;gap:6px}
+    .badge{padding:5px 8px}
+    .badge h1{font-size:12.5px}
+    .badge h1 .live{font-size:9px;padding:1.5px 5px}
+    .badge p{display:none}
+    #badgelogo{height:22px !important}
+    #topright{gap:5px;margin-left:auto;flex-wrap:wrap;justify-content:flex-end}
+    .cams{padding:2px;gap:1px;flex-wrap:wrap;justify-content:flex-end}
+    .cams button{padding:8px 8px;font-size:11px;letter-spacing:.04em}
+    .varbtn{padding:6px 10px;font-size:12px;gap:5px}
+    /* --- score bug + VAR banner below the (possibly wrapped) top bar --- */
+    #scorebug{top:calc(env(safe-area-inset-top) + 96px)}
+    #scorebug .seg{padding:4px 7px;font-size:11px}
+    #scorebug .sc{font-size:13px;padding:4px 9px}
+    #scorebug .set{font-size:10px;padding:4px 7px}
+    #varhud{top:calc(env(safe-area-inset-top) + 148px);flex-wrap:wrap;justify-content:center;max-width:94vw;gap:7px}
+    #radar{right:8px;bottom:calc(186px + env(safe-area-inset-bottom))}
+    /* --- player stats: horizontal swipe row above the dock --- */
+    #ppanel{top:auto;left:0;right:0;bottom:calc(120px + env(safe-area-inset-bottom));
+      flex-direction:row;overflow-x:auto;background:none;border:none;backdrop-filter:none;
+      padding:0 10px 4px;gap:6px;min-width:0;scrollbar-width:none;animation:none}
+    #ppanel::-webkit-scrollbar{display:none}
+    #ppanel::before{display:none}
+    #ppanel .phead{display:none}
+    #ppanel .pchip{flex:none;flex-direction:column;align-items:flex-start;gap:2px;
+      background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--c);
+      border-radius:10px;padding:5px 9px;backdrop-filter:blur(8px)}
+    #ppanel .pchip+.pchip{border-top:1px solid var(--line)}
+    #ppanel .pchip.on{border-color:var(--amber);border-left-color:var(--amber)}
     .pchip .nm{display:none}
-    .pchip .val{font-size:15px}
-    #ppanel{left:8px;top:96px;min-width:150px}
-    #controls{padding:0 8px calc(10px + env(safe-area-inset-bottom))}
-    .dock{flex-wrap:wrap;gap:8px;border-radius:14px;padding:8px 10px}
-    #play{width:44px;height:44px}
+    .pchip .hd{padding-right:12px}
+    .pchip .val{font-size:14px}
+    .pchip .foc{top:6px;transform:none;right:5px;font-size:10px}
+    /* --- dock --- */
+    #controls{padding:0 6px calc(8px + env(safe-area-inset-bottom))}
+    .dock{flex-wrap:wrap;gap:7px;border-radius:14px;padding:8px 9px}
+    #play{width:42px;height:42px}
+    #clock{font-size:15px;min-width:44px}
     #seekwrap{flex-basis:100%;order:5}
     #seek{height:6px}
     #seek::-webkit-slider-thumb{width:20px;height:20px}
-    select,.tgl{padding:9px 11px}
+    select,.tgl{padding:9px 10px;font-size:12px}
+    /* --- settings drawer: bigger touch rows --- */
+    .sbtn,.srow{padding:12px}
   }
 </style>
 </head>
