@@ -293,9 +293,9 @@ if(typeof THREE==='undefined'){
    it plays on the arena jumbotron and in the VIDEO view, time-synced.
    ================================================================ */
 let MATCH_META={set:'SET 2', score:'4 – 3'};
-const VIDEO_URL='https://www.youtube.com/watch?v=HQoWrV7PqhI';   // Premier Padel official — Milano P1 men's final highlights
-// ↑ YouTube link plays in the VIDEO overlay; a direct .mp4/.webm URL
-//   also plays ON the 3D jumbotron, timeline-synced. Replace with your own link, or use ?video=<url>.
+const VIDEO_URL='https://www.youtube.com/watch?v=ve9w0ZEMIYE';   // full padel match (creator channel, embeddable)
+// ↑ Replace with your PADEL IN video link when you have it. YouTube links play in the
+//   VIDEO overlay; a direct .mp4/.webm URL also plays ON the 3D jumbotron, timeline-synced.
 const HEATMAP = {
   points: [
     {x:-2.6,z:-7.2,w:1.0},{x:-2.2,z:-6.4,w:.8},{x:-3.1,z:-7.8,w:.7},{x:-1.4,z:-6.9,w:.6},
@@ -1174,8 +1174,8 @@ let bloomOn=true;
 const feedRT=new THREE.WebGLRenderTarget(MOBILE?480:640, MOBILE?270:360,
   {minFilter:THREE.LinearFilter, magFilter:THREE.LinearFilter});
 const feedCam=new THREE.PerspectiveCamera(38, 16/9, .1, 250);
-feedCam.position.set(11.5, 5.2, -14.5);
-feedCam.lookAt(0, 1.0, 0);
+feedCam.position.set(0, 8.5, -19.5);
+feedCam.lookAt(0, 1.0, 1.5);
 jumboMat.map=feedRT.texture; jumboMat.needsUpdate=true;
 let feedFrame=0;
 function renderFeed(){
@@ -1183,9 +1183,12 @@ function renderFeed(){
   feedFrame++;
   if(feedFrame % (MOBILE?3:2)) return;            // half/third rate is plenty for a stadium screen
   jumbo.visible=false;
+  const shaftVis=shafts.map(s=>s.visible);
+  shafts.forEach(s=>s.visible=false);             // additive cones smear the feed — hide during pass
   renderer.setRenderTarget(feedRT);
   renderer.render(scene, feedCam);
   renderer.setRenderTarget(null);
+  shafts.forEach((s,i)=>s.visible=shaftVis[i]);
   jumbo.visible=true;
 }
 function renderFrame(){
